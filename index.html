@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lightweight Audiobook Player</title>
+    <style>
+        /* CSS Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        :root {
+            --primary-color: #5469d4;
+            --text-color: #333;
+            --bg-color: #f5f7fa;
+            --card-color: #fff;
+            --border-color: #e1e4e8;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            padding: 1rem;
+            max-width: 100%;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Optimize text rendering */
+        body {
+            text-rendering: optimizeSpeed;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* App Container */
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        /* Player Card */
+        .player-card {
+            background-color: var(--card-color);
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .book-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .book-cover {
+            width: 80px;
+            height: 80px;
+            background-color: var(--primary-color);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-right: 1rem;
+        }
+        
+        .book-details {
+            flex: 1;
+        }
+        
+        .book-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .book-author {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .chapter-info {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        /* Player Controls */
+        .player-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 0.5rem;
+            background-color: var(--border-color);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0;
+            transition: width 0.1s ease;
+        }
+        
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .control-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .control-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-button:active {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .play-pause-button {
+            background-color: var(--primary-color);
+            color: white;
+            width: 3.5rem;
+            height: 3.5rem;
+        }
+        
+        .play-pause-button:hover {
+            background-color: #4559c0;
+        }
+        
+        .play-pause-button:active {
+            background-color: #3a4da3;
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+        
+        .playback-rate {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .rate-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: background-color 0.2s;
+        }
+        
+        .rate-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .rate-button:active {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .current-rate {
+            min-width: 2.5rem;
+            text-align: center;
+        }
+        
+        /* Library Section */
+        .library-section {
+            background-color: var(--card-color);
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+            padding: 1.25rem;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .file-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            text-align: center;
+        }
+        
+        .upload-label:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .upload-text {
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .library-list {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .book-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: var(--bg-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .book-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .book-item-cover {
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary-color);
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-right: 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .book-item-details {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .book-item-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .book-item-info {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        /* Icons - using lightweight unicode symbols instead of loading font libraries */
+        .icon {
+            font-style: normal;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Audiobook Player</h1>
+        </div>
+        
+        <div class="player-card">
+            <div class="book-info">
+                <div class="book-cover" id="current-cover">AB</div>
+                <div class="book-details">
+                    <div class="book-title" id="current-title">No book selected</div>
+                    <div class="book-author" id="current-author"></div>
+                    <div class="chapter-info" id="current-chapter"></div>
+                </div>
+            </div>
+            
+            <div class="player-controls">
+                <div class="progress-bar-container" id="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                
+                <div class="time-display">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+                
+                <div class="control-buttons">
+                    <button class="control-button" id="back-30-button">
+                        <span class="icon">↺</span>
+                    </button>
+                    <button class="control-button play-pause-button" id="play-pause-button">
+                        <span class="icon" id="play-icon">▶</span>
+                    </button>
+                    <button class="control-button" id="forward-30-button">
+                        <span class="icon">↻</span>
+                    </button>
+                </div>
+                
+                <div class="settings-row">
+                    <div class="playback-rate">
+                        <button class="rate-button" id="decrease-rate">-</button>
+                        <span class="current-rate" id="rate-display">1.0x</span>
+                        <button class="rate-button" id="increase-rate">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="library-section">
+            <div class="section-title">Library</div>
+            
+            <div class="file-upload">
+                <label for="file-input" class="upload-label">
+                    <div class="upload-text">
+                        <span class="icon" style="font-size: 1.5rem; margin-bottom: 0.5rem;">+</span>
+                        <div>Add audiobook file (MP3, M4A, MP4)</div>
+                    </div>
+                </label>
+                <input type="file" id="file-input" accept="audio/*" multiple>
+            </div>
+            
+            <div class="library-list" id="library-list">
+                <!-- Library items will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Use performance-focused patterns for minimal resource usage
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements - cache references to avoid repeated DOM lookups
+            const elements = {
+                audio: new Audio(),
+                playPauseButton: document.getElementById('play-pause-button'),
+                playIcon: document.getElementById('play-icon'),
+                progressBar: document.getElementById('progress-bar'),
+                progressContainer: document.getElementById('progress-container'),
+                currentTimeDisplay: document.getElementById('current-time'),
+                totalTimeDisplay: document.getElementById('total-time'),
+                back30Button: document.getElementById('back-30-button'),
+                forward30Button: document.getElementById('forward-30-button'),
+                decreaseRateButton: document.getElementById('decrease-rate'),
+                increaseRateButton: document.getElementById('increase-rate'),
+                rateDisplay: document.getElementById('rate-display'),
+                fileInput: document.getElementById('file-input'),
+                libraryList: document.getElementById('library-list'),
+                currentTitle: document.getElementById('current-title'),
+                currentAuthor: document.getElementById('current-author'),
+                currentCover: document.getElementById('current-cover'),
+                currentChapter: document.getElementById('current-chapter')
+            };
+            
+            // App State - centralized state management for minimal memory usage
+            const state = {
+                isPlaying: false,
+                currentBook: null,
+                playbackRate: 1.0,
+                library: [], // Will store minimal metadata with URL.createObjectURL refs
+                progressUpdateInterval: null,
+                lastSavedTime: 0,
+                saveInterval: 5, // Save position every 5 seconds to reduce writes
+                touchStartX: 0,
+                isSeeking: false,
+                
+                // Use localStorage for persistent storage with minimal overhead
+                initialize() {
+                    // Try to load last state using localStorage (lightweight persistence)
+                    try {
+                        const savedLibrary = localStorage.getItem('audiobook-library');
+                        if (savedLibrary) {
+                            const parsedLibrary = JSON.parse(savedLibrary);
+                            if (Array.isArray(parsedLibrary)) {
+                                // Only restore metadata, not the files themselves
+                                this.library = parsedLibrary.map(item => ({
+                                    ...item,
+                                    objectUrl: null // Will be recreated when needed
+                                }));
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to load saved library', e);
+                        // Fail gracefully - use empty library
+                        this.library = [];
+                    }
+                    
+                    // Render library without loading any audio files yet
+                    this.renderLibrary();
+                },
+                
+                saveLibrary() {
+                    // Don't save objectUrls - they'll be regenerated when needed
+                    const libraryToSave = this.library.map(item => {
+                        const { objectUrl, ...rest } = item;
+                        return rest;
+                    });
+                    
+                    try {
+                        localStorage.setItem('audiobook-library', JSON.stringify(libraryToSave));
+                    } catch (e) {
+                        console.warn('Failed to save library', e);
+                    }
+                },
+                
+                // Track book play position for resume capability
+                savePlayPosition() {
+                    if (!this.currentBook) return;
+                    
+                    const currentTime = elements.audio.currentTime;
+                    // Only save if time has changed significantly (reduce writes)
+                    if (Math.abs(currentTime - this.lastSavedTime) >= this.saveInterval) {
+                        this.lastSavedTime = currentTime;
+                        this.currentBook.lastPosition = currentTime;
+                        this.saveLibrary();
+                    }
+                },
+                
+                // Render library with minimal DOM operations
+                renderLibrary() {
+                    // Detach DOM to avoid reflow per item
+                    const fragment = document.createDocumentFragment();
+                    elements.libraryList.innerHTML = '';
+                    
+                    if (this.library.length === 0) {
+                        const emptyMessage = document.createElement('div');
+                        emptyMessage.textContent = 'Your library is empty. Add audiobooks above.';
+                        emptyMessage.style.textAlign = 'center';
+                        emptyMessage.style.padding = '1rem';
+                        emptyMessage.style.color = '#666';
+                        fragment.appendChild(emptyMessage);
+                    } else {
+                        this.library.forEach((book, index) => {
+                            const item = document.createElement('div');
+                            item.className = 'book-item';
+                            item.dataset.index = index;
+                            
+                            const cover = document.createElement('div');
+                            cover.className = 'book-item-cover';
+                            cover.textContent = book.title.substring(0, 2).toUpperCase();
+                            
+                            const details = document.createElement('div');
+                            details.className = 'book-item-details';
+                            
+                            const title = document.createElement('div');
+                            title.className = 'book-item-title';
+                            title.textContent = book.title;
+                            
+                            const info = document.createElement('div');
+                            info.className = 'book-item-info';
+                            
+                            // Display progress if available
+                            if (book.lastPosition && book.duration) {
+                                const percent = Math.round((book.lastPosition / book.duration) * 100);
+                                info.textContent = `${formatTime(book.lastPosition)} / ${formatTime(book.duration)} (${percent}%)`;
+                            } else {
+                                info.textContent = book.type || 'Audio file';
+                            }
+                            
+                            details.appendChild(title);
+                            details.appendChild(info);
+                            
+                            item.appendChild(cover);
+                            item.appendChild(details);
+                            
+                            // Add click event directly during creation (event delegation alternative)
+                            item.addEventListener('click', () => this.loadBook(index));
+                            
+                            fragment.appendChild(item);
+                        });
+                    }
+                    
+                    // Single DOM operation to add all items
+                    elements.libraryList.appendChild(fragment);
+                },
+                
+                // Load a book from the library
+                loadBook(index) {
+                    const book = this.library[index];
+                    if (!book) return;
+                    
+                    // Cleanup previous book's resources
+                    if (this.currentBook && this.currentBook.objectUrl) {
+                        this.pause();
+                        this.savePlayPosition();
+                    }
+                    
+                    this.currentBook = book;
+                    
+                    // Update UI immediately, even before audio loads
+                    elements.currentTitle.textContent = book.title;
+                    elements.currentAuthor.textContent = book.artist || 'Unknown artist';
+                    elements.currentCover.textContent = book.title.substring(0, 2).toUpperCase();
+                    elements.currentChapter.textContent = `${book.type || 'Audio'}`;
+                    
+                    // Lazy load - create object URL only when needed
+                    if (!book.objectUrl && book.fileHandle) {
+                        this.loadFileFromHandle(book);
+                    } else if (book.objectUrl) {
+                        // Use existing object URL
+                        this.setupAudio(book.objectUrl, book.lastPosition || 0);
+                    }
+                },
+                
+                // Load file from file handle (for persistent access)
+                async loadFileFromHandle(book) {
+                    try {
+                        // Temporarily show loading state
+                        elements.currentChapter.textContent = 'Loading...';
+                        
+                        // Create a fresh object URL for the file
+                        book.objectUrl = URL.createObjectURL(book.fileHandle);
+                        
+                        // Set up the audio with the last saved position
+                        this.setupAudio(book.objectUrl, book.lastPosition || 0);
+                    } catch (e) {
+                        console.error('Failed to load file', e);
+                        elements.currentChapter.textContent = 'Error loading file';
+                    }
+                },
+                
+                // Set up audio element with minimal event listeners
+                setupAudio(src, startPosition = 0) {
+                    // Reset and prepare audio element
+                    const audio = elements.audio;
+                    
+                    // Remove previous event listeners to prevent memory leaks
+                    audio.onloadedmetadata = null;
+                    audio.ontimeupdate = null;
+                    audio.onended = null;
+                    audio.onerror = null;
+                    
+                    // Set audio source
+                    audio.src = src;
+                    audio.playbackRate = this.playbackRate;
+                    
+                    // Setup minimal required events
+                    audio.onloadedmetadata = () => {
+                        // Update duration info once loaded
+                        if (this.currentBook) {
+                            this.currentBook.duration = audio.duration;
+                            this.saveLibrary();
+                        }
+                        
+                        elements.totalTimeDisplay.textContent = formatTime(audio.duration);
+                        
+                        // Set the start position if available
+                        if (startPosition > 0 && startPosition < audio.duration) {
+                            audio.currentTime = startPosition;
+                        }
+                        
+                        this.updateProgressDisplay();
+                    };
+                    
+                    // Only update UI on time change, not continuously
+                    audio.ontimeupdate = () => {
+                        // Skip updates during seeking to reduce UI load
+                        if (!this.isSeeking) {
+                            this.updateProgressDisplay();
+                        }
+                    };
+                    
+                    // Auto-save position periodically
+                    if (this.progressUpdateInterval) {
+                        clearInterval(this.progressUpdateInterval);
+                    }
+                    
+                    // Use a lower frequency interval to reduce CPU usage
+                    this.progressUpdateInterval = setInterval(() => {
+                        this.savePlayPosition();
+                    }, 5000);
+                    
+                    // Handle playback end
+                    audio.onended = () => {
+                        this.pause();
+                        // Save position at start rather than end for next time
+                        if (this.currentBook) {
+                            this.currentBook.lastPosition = 0;
+                            this.saveLibrary();
+                        }
+                    };
+                    
+                    // Handle loading errors
+                    audio.onerror = (e) => {
+                        console.error('Audio error:', e);
+                        elements.currentChapter.textContent = 'Error: Could not play file';
+                    };
+                    
+                    // Trigger the metadata load
+                    audio.load();
+                },
+                
+                // Toggle play/pause with minimal state changes
+                togglePlay() {
+                    if (!this.currentBook) return;
+                    
+                    if (this.isPlaying) {
+                        this.pause();
+                    } else {
+                        this.play();
+                    }
+                },
+                
+                // Start playback
+                play() {
+                    if (!this.currentBook) return;
+                    
+                    // Use Promise-based approach to handle autoplay restrictions
+                    elements.audio.play()
+                        .then(() => {
+                            this.isPlaying = true;
+                            elements.playIcon.textContent = '❙❙';
+                        })
+                        .catch(e => {
+                            console.error('Playback failed:', e);
+                            elements.currentChapter.textContent = 'Error: Playback failed';
+                        });
+                },
+                
+                // Pause playback
+                pause() {
+                    elements.audio.pause();
+                    this.isPlaying = false;
+                    elements.playIcon.textContent = '▶';
+                    
+                    // Save position immediately on pause
+                    this.savePlayPosition();
+                },
+                
+                // Skip backwards
+                skipBackward(seconds = 30) {
+                    if (!this.currentBook) return;
+                    elements.audio.currentTime = Math.max(0, elements.audio.currentTime - seconds);
+                    this.updateProgressDisplay();
+                },
+                
+                // Skip forwards
+                skipForward(seconds = 30) {
+                    if (!this.currentBook) return;
+                    elements.audio.currentTime = Math.min(
+                        elements.audio.duration,
+                        elements.audio.currentTime + seconds
+                    );
+                    this.updateProgressDisplay();
+                },
+                
+                // Change playback rate with validation
+                changePlaybackRate(delta) {
+                    // Limit rate changes to valid range with smaller steps
+                    const newRate = Math.max(0.5, Math.min(3.0, this.playbackRate + delta));
+                    this.playbackRate = Math.round(newRate * 10) / 10; // Round to 1 decimal place
+                    
+                    // Apply changes
+                    elements.audio.playbackRate = this.playbackRate;
+                    elements.rateDisplay.textContent = `${this.playbackRate.toFixed(1)}x`;
+                },
+                
+                // Update progress display with minimal DOM updates
+                updateProgressDisplay() {
+                    const audio = elements.audio;
+                    if (!audio) return;
+                    
+                    const currentTime = audio.currentTime || 0;
+                    const duration = audio.duration || 0;
+                    
+                    // Only update DOM if values have changed significantly
+                    elements.currentTimeDisplay.textContent = formatTime(currentTime);
+                    
+                    // Use efficient CSS transform for progress bar (hardware accelerated)
+                    if (duration > 0) {
+                        const percent = (currentTime / duration) * 100;
+                        elements.progressBar.style.width = `${percent}%`;
+                    } else {
+                        elements.progressBar.style.width = '0%';
+                    }
+                },
+                
+                // Handle seeking in the progress bar
+                handleProgressClick(e) {
+                    if (!this.currentBook || !elements.audio.duration) return;
+                    
+                    const rect = elements.progressContainer.getBoundingClientRect();
+                    const clickPosition = e.clientX - rect.left;
+                    const containerWidth = rect.width;
+                    const seekPercent = clickPosition / containerWidth;
+                    
+                    // Set new playback position
+                    elements.audio.currentTime = seekPercent * elements.audio.duration;
+                    this.updateProgressDisplay();
+                },
+                
+                // Process files added to the library
+                addFiles(fileList) {
+                    if (!fileList || fileList.length === 0) return;
+                    
+                    // Process each file with minimal overhead
+                    Array.from(fileList).forEach(file => {
+                        // Only store file metadata initially
+                        const fileExtension = file.name.split('.').pop().toLowerCase();
+                        const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+                        
+                        // Create lightweight book object with just essential data
+                        const book = {
+                            title: fileName,
+                            artist: '',
+                            type: file.type || `audio/${fileExtension}`,
+                            lastPosition: 0,
+                            fileHandle: file, // Store reference to file
+                            objectUrl: null, // Will be created on demand
+                            addedAt: Date.now()
+                        };
+                        
+                        this.library.push(book);
+                    });
+                    
+                    // Save library metadata
+                    this.saveLibrary();
+                    
+                    // Update UI
+                    this.renderLibrary();
+                    
+                    // Auto-load the first added book if none is currently loaded
+                    if (!this.currentBook && this.library.length > 0) {
+                        this.loadBook(this.library.length - 1);
+                    }
+                }
+            };
+            
+            // Initialize app
+            state.initialize();
+            
+            // Set up event listeners with minimal handlers
+            elements.playPauseButton.addEventListener('click', () => state.togglePlay());
+            elements.back30Button.addEventListener('click', () => state.skipBackward(30));
+            elements.forward30Button.addEventListener('click', () => state.skipForward(30));
+            elements.decreaseRateButton.addEventListener('click', () => state.changePlaybackRate(-0.1));
+            elements.increaseRateButton.addEventListener('click', () => state.changePlaybackRate(0.1));
+            
+            // File input handling
+            elements.fileInput.addEventListener('change', (e) => {
+                state.addFiles(e.target.files);
+                // Reset input value to allow adding the same file again
+                e.target.value = '';
+            });
+            
+            // Progress bar interactions - use touch events for mobile
+            elements.progressContainer.addEventListener('click', (e) => state.handleProgressClick(e));
+            
+            // Touch event handling for mobile seeking
+            elements.progressContainer.addEventListener('touchstart', (e) => {
+                state.touchStartX = e.touches[0].clientX;
+                state.isSeeking = true;
+            }, { passive: true });
+            
+            elements.progressContainer.addEventListener('touchmove', (e) => {
+                if (state.isSeeking) {
+                    const rect = elements.progressContainer.getBoundingClientRect();
+                    const touchPosition = e.touches[0].clientX - rect.left;
+                    const containerWidth = rect.width;
+                    const seekPercent = Math.max(0, Math.min(1, touchPosition / containerWidth));
+                    
+                    // Update progress bar visually during touch move
+                    elements.progressBar.style.width = `${seekPercent * 100}%`;
+                    
+                    // Update time display during seeking
+                    if (elements.audio.duration) {
+                        const newTime = seekPercent * elements.audio.duration;
+                        elements.currentTimeDisplay.textContent = formatTime(newTime);
+                    }
+                }
+            }, { passive: true });
+            
+            elements.progressContainer.addEventListener('touchend', (e) => {
+                if (state.isSeeking && elements.audio.duration) {
+                    const rect = elements.progressContainer.getBoundingClientRect();
+                    const touchPosition = e.changedTouches[0].clientX - rect.left;
+                    const containerWidth = rect.width;
+                    const seekPercent = Math.max(0, Math.min(1, touchPosition / containerWidth));
+                    
+                    elements.audio.currentTime = seekPercent * elements.audio.duration;
+                    state.updateProgressDisplay();
+                }
+                state.isSeeking = false;
+            }, { passive: true });
+            
+            // Keyboard shortcuts for accessibility
+            document.addEventListener('keydown', (e) => {
+                // Only process if not in a text input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
+                switch (e.key) {
+                    case ' ':
+                        e.preventDefault();
+                        state.togglePlay();
+                        break;
+                    case 'ArrowLeft':
+                        state.skipBackward(10);
+                        break;
+                    case 'ArrowRight':
+                        state.skipForward(10);
+                        break;
